@@ -7,6 +7,13 @@ import seaborn as sns
 
 
 
+sns.set(palette="bright", font_scale = 1.25)
+plt.rcParams["figure.figsize"] = (15, 8)
+plt.rcParams["axes.grid"] = True
+plt.rcParams["grid.linestyle"] = ':'
+plt.rcParams["grid.color"] = 'gray'
+
+
 def num_variable_analysis(df: pd.DataFrame,
                           item: str,
                           target_name: str,
@@ -344,3 +351,209 @@ def numerated_barplot(bar_data: pd.Series,
                   horizontalalignment='center', fontsize='small', rotation=90)
     axis.set_xticklabels(bar_data.index, rotation=90)
     axis.set_title(item, fontsize=fontsize)
+
+
+
+def corr_analysis(df: pd.DataFrame,
+                  target_name: str,
+                  corr_type: str = 'spearman',
+                  low_lim: float = 0.1,
+                  high_lim: float = 0.8,
+                  visualize_full: bool = False,
+                  visualize_low_scatter: bool = True,
+                  visualize_high: bool = False,
+                  visualize_high_scatter: bool = True,
+                  color: str = 'forestgreen',
+                  shrink_full: float = 0.9,
+                  shrink_high: float = 0.9,
+                  fontsize: int = 14):
+    """
+    TODO: refactor
+    TODO: docstring
+    This function
+    - calculates correlation matrix (Pearson's or Spearman's)
+    - plots heatmap of full correlation matrix (if `visualize_full=True`)
+    - plots heatmap of correlation matrix with coefficients
+       which absolute values more than the `high_lim` (if `visualize_high=True`)
+
+    Requirements:
+        matplotlib.pyplot as plt
+        numpy as np
+        pandas as pd
+        seaborn as sns
+
+    :param df:          [pandas.DataFrame]  dataset
+    :param corr_type:   [str]               name of correlation type ('pearson' or 'spearman')
+    :param low_lim:     [float]             low limit for absolute value of correlation coefficients
+                                                to check high correlation
+    :param high_lim:    [float]             high limit for absolute value of correlation coefficients
+                                                to check low correlation
+    :param shrink:      [float]             parameter for adjusting the size of colorbar
+
+    Returns:
+    - correlation matrix [pandas.DataFrame]
+    """
+
+    ### === Assertions
+    assert corr_type in ['pearson', 'spearman'], \
+        "`corr_type` should be one of 'pearson' or 'spearman'"
+
+    assert 0 < high_lim <= 1, \
+        "`high_lim` should follows by `0 < high_lim <= 1`"
+
+    assert 0 <= low_lim < 1, \
+        "`low_lim` should follows by `0 <= low_lim < 1`"
+
+
+    ### === Full matrix matrix heatmap
+    corr_matrix = df.corr(corr_type)
+
+    if visualize_full:
+        plt.subplots(1, 1, figsize=(16, 16))
+        ## Generate a custom diverging colormap
+        cmap = sns.diverging_palette(150, 275, s=80, l=55, as_cmap=True)
+        ## Generate a blind mask for the upper triangle
+        mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+        sns.heatmap(corr_matrix, mask=mask, center=0,
+                    cmap=cmap, cbar=True,
+                    cbar_kws={"shrink": shrink_full,
+                              "ticks": list(np.round(np.arange(-1, 1.1, 0.2), 1))},
+                    vmin=-1, vmax=1,
+                    square=True, linewidths=0.1, linecolor='k',
+                    annot=True, annot_kws={'fontsize': 'small'}, fmt='.2f')
+        plt.xticks(rotation=90)
+        plt.title(corr_type.title() + "'s' correlation matrix: $C_{ij}$",
+                  fontsize=fontsize)
+        plt.show()
+
+
+    ### === Matrix of low correlations with target
+    mask_target_low = abs(corr_matrix[target_name]) <= low_lim
+    corr_matrix_target_low = corr_matrix[mask_target_low][target_name]
+    corr_matrix_target_low = corr_matrix_target_low.sort_values()
+
+    if len(corr_matrix_target_low) > 0:
+        print(">>> These features have low correlation coefficients with target:")
+        if visualize_low_scatter :
+            for feat in corr_matrix_target_low.index:
+                df_low = df[[feat, target_name]].dropna()
+
+                range_x = df_low[feat].max() - df_low[feat].min()
+                x_min = df_low[feat].min() - 0.03 * range_x
+                x_max = df_low[feat].max() + 0.03 * range_x
+                range_y = df_low[target_name].max() - df_low[target_name].min()
+                y_min = df_low[target_name].min() - 0.03 * range_y
+                y_max = df_low[target_name].max() + 0.03 * range_y
+
+                plt.subplots(1, 2, figsize=(12, 6))
+
+                plt.subplot(1, 2, 1)
+                sns.regplot(x=feat, y=target_name, data=df_low,
+                            scatter_kws={'s': 9}, color=color)
+                plt.xlim((x_min, x_max))
+                plt.ylim((y_min, y_max))
+                plt.grid(linestyle=':', color='gray')
+                plt.xlabel(feat, fontsize='small')
+                plt.ylabel(target_name, fontsize='small')
+                plt.title(f"{feat} : C = {corr_matrix_target_low.loc[feat]:.3g}")
+
+                plt.subplot(1, 2, 2)
+                plt.hexbin(df_low[feat], df_low[target_name],
+                           gridsize=50, vmin=0, cmap="Greens", alpha=0.6)
+                plt.xlim((x_min, x_max))
+                plt.ylim((y_min, y_max))
+                plt.grid(linestyle=':', color='gray')
+                plt.xlabel(feat, fontsize='small')
+                plt.show()
+        else:
+            display(corr_matrix_target_low)
+    else:
+        print(
+            f""">>> There are not feature with correlation coefficients: 
+              |C| <= {low_lim}.""")
+
+
+    ### === "High-value" corr matrix
+    mask_high = abs(corr_matrix) > high_lim
+    corr_matrix_high = corr_matrix[mask_high]
+    for col in corr_matrix_high.columns:
+        corr_matrix_high.loc[col, col] = np.nan
+    corr_matrix_high = corr_matrix_high.dropna(axis=0, how='all')
+    corr_matrix_high = corr_matrix_high.dropna(axis=1, how='all')
+
+    ### --- Table of high-correlated pairs
+    high_corr_df = []
+    for ind in corr_matrix_high.index:
+        for col in corr_matrix_high.columns:
+            if corr_matrix_high.loc[ind, col] > 0:
+                high_corr_df.append([ind,
+                                     col,
+                                     str(sorted(list(set([ind, col])))),
+                                     corr_matrix_high.loc[ind, col]])
+    high_corr_df = pd.DataFrame(high_corr_df,
+                                columns=['var1', 'var2', 'var_set',
+                                         'corr_coeff'])
+    high_corr_df = high_corr_df.drop_duplicates(subset='var_set')
+    high_corr_df = high_corr_df.drop('var_set', axis=1)
+    high_corr_df = high_corr_df.sort_values('corr_coeff', ascending=False)
+    high_corr_df = high_corr_df.reset_index(drop=True)
+    print(">>> These pairs of features have high correlation coefficients:")
+
+    ### === Draw heatmaps with the masks and "square" aspect ratio
+    if visualize_high:
+        plt.subplots(1, 1, figsize=(len(corr_matrix_high),
+                                    len(corr_matrix_high)))
+        ## Generate a blind mask for the upper triangle
+        mask = np.triu(np.ones_like(corr_matrix_high, dtype=bool))
+        sns.heatmap(corr_matrix_high,
+                    mask=mask,
+                    center=0,
+                    cmap=sns.color_palette("coolwarm", as_cmap=True), cbar=True,
+                    cbar_kws={"shrink": shrink_high, "ticks": list(
+                        np.round(np.arange(0, 1.05, 0.1), 1))},
+                    vmin=0, vmax=1,
+                    annot=True, annot_kws={'fontsize': 11}, fmt='.2g',
+                    square=True, linewidths=0.1, linecolor='k')
+        plt.xticks(rotation=90)
+        plt.title(f"{corr_type.title()}'s correlation matrix:" \
+                  + "$C_{ij}$: $|C_{ij}|>$" + f"{high_lim}",
+                  fontsize=fontsize)
+        plt.show()
+
+    if visualize_high_scatter:
+        for ind in high_corr_df.index:
+            var1 = high_corr_df.loc[ind, 'var1']
+            var2 = high_corr_df.loc[ind, 'var2']
+            df = data[[var1, var2]].dropna()
+            range_x = df[var1].max() - df[var1].min()
+            x_min = df[var1].min() - 0.03 * range_x
+            x_max = df[var1].max() + 0.03 * range_x
+            range_y = df[var2].max() - df[var2].min()
+            y_min = df[var2].min() - 0.03 * range_y
+            y_max = df[var2].max() + 0.03 * range_y
+
+            plt.subplots(1, 2, figsize=(12, 6))
+            plt.subplot(1, 2, 1)
+            sns.regplot(x=var1, y=var2, data=df, color='maroon')
+            plt.xlim((x_min, x_max))
+            plt.ylim((y_min, y_max))
+            plt.xlabel(var1, fontsize='small')
+            plt.ylabel(var2, fontsize='small')
+            plt.title(
+                f"{var1} - {var2} : {high_corr_df.loc[ind, 'corr_coeff']:.3g}")
+
+            plt.subplot(1, 2, 2)
+            plt.hexbin(df[var1], df[var2], gridsize=50, vmin=0,
+                       cmap="Reds", alpha=0.6)
+            plt.xlim((x_min, x_max))
+            plt.ylim((y_min, y_max))
+            plt.xlabel(var1, fontsize='small')
+            if target_name not in [var1, var2]:
+                title_str = f"{var1} = {corr_matrix.loc[var1, target_name]:.3f}\n"
+                title_str += f"{var2} = {corr_matrix.loc[var2, target_name]:.3f}"
+                plt.title(title_str)
+            plt.show()
+    else:
+        display(high_corr_df)
+
+    return corr_matrix, high_corr_df, corr_matrix_target_low

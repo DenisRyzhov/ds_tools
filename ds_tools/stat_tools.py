@@ -85,7 +85,7 @@ def pdf_fit(x: np.ndarray or pd.Series,
             plt.subplot(ny, 1, 2)
             sns.histplot(x, bins=bins, kde=show_kde, stat='density',
                          color=color_distr, label="data")
-            plt.semilogy(x_fit, y_fit, '-',
+            plt.semilogy(x_fit, y_fit, '--',
                          label="fitting", color=color_fit)
             plt.legend()
             plt.title(f"{name} distribution (semilogy)", fontsize=fontsize)
