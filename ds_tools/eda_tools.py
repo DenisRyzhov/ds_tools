@@ -1,6 +1,7 @@
 from typing import Dict, Iterable, Optional, Tuple
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -151,15 +152,15 @@ def num_variable_analysis(df: pd.DataFrame,
 
 
 
-def cat_variable_analysis(df: pd.DataFrame,
-                          item: str,
-                          item_type: str,
-                          target_name: str,
-                          target_type: str,
-                          color: str = 'forestgreen',
-                          fontsize: int = 14,
-                          descr_dict: Optional[Dict[str, str]] = None,
-                          data_info: Optional[pd.DataFrame] = None) \
+def categ_variable_analysis(df: pd.DataFrame,
+                            item: str,
+                            item_type: str,
+                            target_name: str,
+                            target_type: str,
+                            color: str = 'forestgreen',
+                            fontsize: int = 14,
+                            descr_dict: Optional[Dict[str, str]] = None,
+                            data_info: Optional[pd.DataFrame] = None) \
         -> [pd.Series or Tuple[pd.Series, pd.DataFrame]]:
     """
     This function
