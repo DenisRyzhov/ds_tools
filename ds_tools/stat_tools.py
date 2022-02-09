@@ -8,6 +8,15 @@ import seaborn as sns
 
 
 
+sns.set_style("whitegrid")
+sns.set(palette="bright", font_scale=1.25)
+plt.rcParams["figure.figsize"] = (15, 8)
+plt.rcParams["axes.grid"] = True
+plt.rcParams["grid.linestyle"] = ':'
+plt.rcParams["grid.color"] = 'gray'
+
+
+
 def pdf_fit(x: np.ndarray or pd.Series,
             distrib: Type[Any] = scipy.stats.norm,
             visualize: bool = True,
