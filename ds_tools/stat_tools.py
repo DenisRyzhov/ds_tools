@@ -8,6 +8,15 @@ import seaborn as sns
 
 
 
+sns.set_style("whitegrid")
+sns.set(palette="bright", font_scale=1.25)
+plt.rcParams["figure.figsize"] = (15, 8)
+plt.rcParams["axes.grid"] = True
+plt.rcParams["grid.linestyle"] = ':'
+plt.rcParams["grid.color"] = 'gray'
+
+
+
 def pdf_fit(x: np.ndarray or pd.Series,
             distrib: Type[Any] = scipy.stats.norm,
             visualize: bool = True,
@@ -85,7 +94,7 @@ def pdf_fit(x: np.ndarray or pd.Series,
             plt.subplot(ny, 1, 2)
             sns.histplot(x, bins=bins, kde=show_kde, stat='density',
                          color=color_distr, label="data")
-            plt.semilogy(x_fit, y_fit, '-',
+            plt.semilogy(x_fit, y_fit, '--',
                          label="fitting", color=color_fit)
             plt.legend()
             plt.title(f"{name} distribution (semilogy)", fontsize=fontsize)
